@@ -1,6 +1,6 @@
 # Billion Network BOT
 Billion Network Bot Auto Claim Daily
-
+- Join Our Telegram Channel at: https://t.me/airdropseeker_official
 - Register Here : [Billions Network](https://signup.billions.network)
 
 ## Features
@@ -20,7 +20,7 @@ Billion Network Bot Auto Claim Daily
 
 1. **Clone The Repositories:**
    ```bash
-   git clone https://github.com/vonssy/Billion-Bot.git
+   git clone https://github.com/LinuxDil/Billion-Bot.git
    cd Billion-Bot
    ```
 2. **Make Environment:**
