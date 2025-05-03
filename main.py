@@ -51,8 +51,6 @@ class BillionsNetwork:
 # Memanggil metode welcome
 bot = BillionsNetwork()
 bot.welcome()# Memanggil metode welcome
-bot = BillionsNetwork()
-bot.welcome()
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
