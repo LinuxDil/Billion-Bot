@@ -6,9 +6,10 @@ from aiohttp import (
 from aiohttp_socks import ProxyConnector
 from fake_useragent import FakeUserAgent
 from datetime import datetime, timezone
+from colorama import *
 import asyncio, os, pytz
 from pyfiglet import figlet_format
-from colorama import Fore, Style
+
 wib = pytz.timezone('Asia/Jakarta')
 
 class BillionsNetwork:
@@ -38,26 +39,21 @@ class BillionsNetwork:
             flush=True
         )
 
-    def welcome(self):
-        title = figlet_format("Auto Claim Billions Network", font="slant")  # Membuat teks besar
-        watermark = figlet_format("Rey?", font="slant")  # Membuat watermark besar
+    def welcome(self, title="Auto Claim Billions Network", watermark="Rey? <INI WATERMARK>"):
+    title_big = figlet_format(title, font="slant") 
+    watermark_big = figlet_format(watermark, font="slant")  
+    terminal_width = os.get_terminal_size().columns
+    title_centered = title_big.center(terminal_width)
+    watermark_centered = watermark_big.center(terminal_width)
 
-        print(
-            f"""
-        {Fore.GREEN + Style.BRIGHT}{title}
-        {Fore.YELLOW + Style.BRIGHT}{watermark}
-            """
-        )
+    print(f"{Fore.GREEN + Style.BRIGHT}{title_centered}{Style.RESET_ALL}")
+    print(f"{Fore.YELLOW + Style.BRIGHT}{watermark_centered}{Style.RESET_ALL}")
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
     
-# Memanggil metode welcome
-bot = BillionsNetwork()
-bot.welcome()
-
     async def load_proxies(self, use_proxy_choice: int):
         filename = "proxy.txt"
         try:
