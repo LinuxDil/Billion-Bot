@@ -4,4 +4,3 @@ fake-useragent
 colorama
 pytz
 pyfiglet
-curl-cffi
