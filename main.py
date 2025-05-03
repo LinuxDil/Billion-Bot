@@ -37,6 +37,9 @@ class BillionsNetwork:
             f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}{message}",
             flush=True
         )
+from pyfiglet import figlet_format
+from colorama import Fore, Style
+
 class BillionsNetwork:
     def welcome(self):
         title = figlet_format("Auto Claim Billions Network", font="slant")  # Membuat teks besar
@@ -48,15 +51,16 @@ class BillionsNetwork:
         {Fore.YELLOW + Style.BRIGHT}{watermark}
             """
         )
-# Memanggil metode welcome
-bot = BillionsNetwork()
-bot.welcome()# Memanggil metode welcome
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
     
+# Memanggil metode welcome
+bot = BillionsNetwork()
+bot.welcome()
+
     async def load_proxies(self, use_proxy_choice: int):
         filename = "proxy.txt"
         try:
