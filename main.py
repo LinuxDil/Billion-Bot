@@ -43,7 +43,7 @@ class BillionsNetwork:
     def welcome(self, title="Billion Network", watermark="Follow US on Telegram at: https://t.me/ardropseeker_official"):
         title_big = figlet_format(title, font="slant") 
         terminal_width = os.get_terminal_size().columns
-        title_centered = title_big.center(terminal_width)
+        title_centered = title.center(terminal_width)
         watermark_centered = watermark.center(terminal_width)
         print(f"{Fore.GREEN + Style.BRIGHT}{title_centered}{Style.RESET_ALL}")
         print(f"{Fore.YELLOW + Style.BRIGHT}{watermark_centered}{Style.RESET_ALL}")
