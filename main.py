@@ -269,7 +269,7 @@ class BillionsNetwork:
                 self.clear_terminal()
                 self.welcome()
                 self.log(
-                    f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
+                    f"{Fore.GREEN + Style.BRIGHT}Total Akun: {Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT}{len(session_ids)}{Style.RESET_ALL}"
                 )
 
