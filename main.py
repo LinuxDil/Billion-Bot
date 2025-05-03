@@ -1,29 +1,32 @@
-from curl_cffi import requests
+from aiohttp import (
+    ClientResponseError,
+    ClientSession,
+    ClientTimeout
+)
+from aiohttp_socks import ProxyConnector
 from fake_useragent import FakeUserAgent
-from datetime import datetime
+from datetime import datetime, timezone
 from colorama import *
-import asyncio, time, json, os, pytz
+import asyncio, os, pytz
 
 wib = pytz.timezone('Asia/Jakarta')
 
-class NaorisProtocol:
+class BillionsNetwork:
     def __init__(self) -> None:
         self.headers = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Origin": "chrome-extension://cpikalnagknmlfhnilhfelifgbollmmp",
+            "Origin": "https://signup.billions.network",
+            "Referer": "https://signup.billions.network/",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "none",
-            "Sec-Fetch-Storage-Access": "active",
+            "Sec-Fetch-Site": "same-site",
             "User-Agent": FakeUserAgent().random
         }
-        self.BASE_API = "https://naorisprotocol.network/sec-api"
-        self.PING_API = "https://beat.naorisprotocol.network/api/ping"
+        self.BASE_API = "https://signup-backend.billions.network"
         self.proxies = []
         self.proxy_index = 0
         self.account_proxies = {}
-        self.access_tokens = {}
 
     def clear_terminal(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -38,7 +41,7 @@ class NaorisProtocol:
     def welcome(self):
         print(
             f"""
-        {Fore.GREEN + Style.BRIGHT}Auto Ping {Fore.BLUE + Style.BRIGHT}Naoris Protocol Node - BOT
+        {Fore.GREEN + Style.BRIGHT}Auto Claim {Fore.BLUE + Style.BRIGHT}Billions Network - BOT
             """
             f"""
         {Fore.GREEN + Style.BRIGHT}Rey? {Fore.YELLOW + Style.BRIGHT}<INI WATERMARK>
@@ -50,31 +53,17 @@ class NaorisProtocol:
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
     
-    def load_accounts(self):
-        filename = "accounts.json"
-        try:
-            if not os.path.exists(filename):
-                self.log(f"{Fore.RED}File {filename} Not Found.{Style.RESET_ALL}")
-                return
-
-            with open(filename, 'r') as file:
-                data = json.load(file)
-                if isinstance(data, list):
-                    return data
-                return []
-        except json.JSONDecodeError:
-            return []
-    
     async def load_proxies(self, use_proxy_choice: int):
         filename = "proxy.txt"
         try:
             if use_proxy_choice == 1:
-                response = await asyncio.to_thread(requests.get, "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt")
-                response.raise_for_status()
-                content = response.text
-                with open(filename, 'w') as f:
-                    f.write(content)
-                self.proxies = content.splitlines()
+                async with ClientSession(timeout=ClientTimeout(total=30)) as session:
+                    async with session.get("https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt") as response:
+                        response.raise_for_status()
+                        content = await response.text()
+                        with open(filename, 'w') as f:
+                            f.write(content)
+                        self.proxies = content.splitlines()
             else:
                 if not os.path.exists(filename):
                     self.log(f"{Fore.RED + Style.BRIGHT}File {filename} Not Found.{Style.RESET_ALL}")
@@ -101,40 +90,32 @@ class NaorisProtocol:
             return proxies
         return f"http://{proxies}"
 
-    def get_next_proxy_for_account(self, account):
-        if account not in self.account_proxies:
+    def get_next_proxy_for_account(self, token):
+        if token not in self.account_proxies:
             if not self.proxies:
                 return None
             proxy = self.check_proxy_schemes(self.proxies[self.proxy_index])
-            self.account_proxies[account] = proxy
+            self.account_proxies[token] = proxy
             self.proxy_index = (self.proxy_index + 1) % len(self.proxies)
-        return self.account_proxies[account]
+        return self.account_proxies[token]
 
-    def rotate_proxy_for_account(self, account):
+    def rotate_proxy_for_account(self, token):
         if not self.proxies:
             return None
         proxy = self.check_proxy_schemes(self.proxies[self.proxy_index])
-        self.account_proxies[account] = proxy
+        self.account_proxies[token] = proxy
         self.proxy_index = (self.proxy_index + 1) % len(self.proxies)
         return proxy
     
     def mask_account(self, account):
+        if "@" in account:
+            local, domain = account.split('@', 1)
+            mask_account = local[:3] + '*' * 3 + local[-3:]
+            return f"{mask_account}@{domain}"
+        
         mask_account = account[:6] + '*' * 6 + account[-6:]
         return mask_account
-    
-    def print_message(self, address, proxy, color, message):
-        self.log(
-            f"{Fore.CYAN + Style.BRIGHT}[ Account:{Style.RESET_ALL}"
-            f"{Fore.WHITE + Style.BRIGHT} {self.mask_account(address)} {Style.RESET_ALL}"
-            f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
-            f"{Fore.CYAN + Style.BRIGHT} Proxy: {Style.RESET_ALL}"
-            f"{Fore.WHITE + Style.BRIGHT}{proxy}{Style.RESET_ALL}"
-            f"{Fore.MAGENTA + Style.BRIGHT} - {Style.RESET_ALL}"
-            f"{Fore.CYAN + Style.BRIGHT}Status:{Style.RESET_ALL}"
-            f"{color + Style.BRIGHT} {message} {Style.RESET_ALL}"
-            f"{Fore.CYAN + Style.BRIGHT}]{Style.RESET_ALL}"
-        )
-
+        
     def print_question(self):
         while True:
             try:
@@ -155,257 +136,187 @@ class NaorisProtocol:
                     print(f"{Fore.RED + Style.BRIGHT}Please enter either 1, 2 or 3.{Style.RESET_ALL}")
             except ValueError:
                 print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number (1, 2 or 3).{Style.RESET_ALL}")
-
-    async def generate_tokens(self, address: str, proxy=None, retries=5):
-        url = f"{self.BASE_API}/auth/generateToken"
-        data = json.dumps({"wallet_address":address})
-        headers = {
-            **self.headers,
-            "Content-Length": str(len(data)),
-            "Content-Type": "application/json"
-        }
-        for attempt in range(retries):
-            try:
-                response = await asyncio.to_thread(requests.post, url=url, headers=headers, data=data, proxy=proxy, timeout=60, impersonate="chrome110")
-                if response.status_code == 404:
-                    return self.print_message(self.mask_account(address), proxy, Fore.RED, f"GET Access Token Failed: {Fore.YELLOW+Style.BRIGHT}Join Testnet & Complete Required Tasks First")
-                response.raise_for_status()
-                result = response.json()
-                return result["token"]
-            except Exception as e:
-                if attempt < retries - 1:
-                    await asyncio.sleep(5)
-                    continue
-                return self.print_message(self.mask_account(address), proxy, Fore.RED, f"GET Access Token Failed: {Fore.YELLOW+Style.BRIGHT}{str(e)}")
-            
-    async def wallet_details(self, address: str, use_proxy: bool, proxy=None, retries=5):
-        url = f"{self.BASE_API}/api/wallet-details"
-        headers = {
-            **self.headers,
-            "Authorization": f"Bearer {self.access_tokens[address]}"
-        }
-        for attempt in range(retries):
-            try:
-                response = await asyncio.to_thread(requests.get, url=url, headers=headers, proxy=proxy, timeout=60, impersonate="chrome110")
-                if response.status_code == 401:
-                    await self.process_generate_tokens(address, use_proxy)
-                    headers["Authorization"] = f"Bearer {self.access_tokens[address]}"
-                    continue
-                response.raise_for_status()
-                return response.json()
-            except Exception as e:
-                if attempt < retries - 1:
-                    await asyncio.sleep(5)
-                    continue
-                return self.print_message(self.mask_account(address), proxy, Fore.RED, f"GET Wallet Details Failed: {Fore.YELLOW+Style.BRIGHT}{str(e)}")
     
-    async def add_whitelist(self, address: str, use_proxy: bool, proxy=None, retries=5):
-        url = f"{self.BASE_API}/api/addWhitelist"
-        data = json.dumps({"walletAddress":address, "url":"naorisprotocol.network"})
+    async def user_data(self, session_id: str, proxy=None, retries=5):
+        url = f"{self.BASE_API}/me"
         headers = {
             **self.headers,
-            "Authorization": f"Bearer {self.access_tokens[address]}",
-            "Content-Length": str(len(data)),
-            "Content-Type": "application/json"
+            "Cookie": session_id
         }
         for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
             try:
-                response = await asyncio.to_thread(requests.post, url=url, headers=headers, data=data, proxy=proxy, timeout=60, impersonate="chrome110")
-                if response.status_code == 401:
-                    await self.process_generate_tokens(address, use_proxy)
-                    headers["Authorization"] = f"Bearer {self.access_tokens[address]}"
-                    continue
-                elif response.status_code == 409:
-                    return self.print_message(self.mask_account(address), proxy, Fore.RED, f"Add to Whitelist Failed: {Fore.YELLOW+Style.BRIGHT}URL Already Exists In Whitelist")
-                response.raise_for_status()
-                return response.json()
-            except Exception as e:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=300)) as session:
+                    async with session.get(url=url, headers=headers) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return self.print_message(self.mask_account(address), proxy, Fore.RED, f"Add to Whitelist Failed: {Fore.YELLOW+Style.BRIGHT}{str(e)}")
+                return None
     
-    async def toggle_activation(self, address: str, state: str, device_hash: int, use_proxy: bool, proxy=None, retries=5):
-        url = f"{self.BASE_API}/api/switch"
-        data = json.dumps({"walletAddress":address, "state":state, "deviceHash":device_hash})
+    async def claim_daily_reward(self, session_id: str, proxy=None, retries=5):
+        url = f"{self.BASE_API}/claim-daily-reward"
         headers = {
             **self.headers,
-            "Authorization": f"Bearer {self.access_tokens[address]}",
-            "Content-Length": str(len(data)),
-            "Content-Type": "application/json"
+            "Content-Length": "0",
+            "Cookie": session_id
         }
         for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
             try:
-                response = await asyncio.to_thread(requests.post, url=url, headers=headers, data=data, proxy=proxy, timeout=60, impersonate="chrome110")
-                if response.status_code == 401:
-                    await self.process_generate_tokens(address, use_proxy)
-                    headers["Authorization"] = f"Bearer {self.access_tokens[address]}"
-                    continue
-                response.raise_for_status()
-                return response.text
-            except Exception as e:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=300)) as session:
+                    async with session.post(url=url, headers=headers) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return self.print_message(self.mask_account(address), proxy, Fore.RED, f"Turn On Protection Failed: {Fore.YELLOW+Style.BRIGHT}{str(e)}")
-    
-    async def perform_ping(self, address: str, use_proxy: bool, proxy=None, retries=5):
-        headers = {
-            **self.headers,
-            "Authorization": f"Bearer {self.access_tokens[address]}",
-            "Content-Length": "2",
-            "Content-Type": "application/json"
-        }
-        for attempt in range(retries):
-            try:
-                response = await asyncio.to_thread(requests.post, url=self.PING_API, headers=headers, json={}, proxy=proxy, timeout=60, impersonate="chrome110")
-                if response.status_code == 401:
-                    await self.process_generate_tokens(address, use_proxy)
-                    headers["Authorization"] = f"Bearer {self.access_tokens[address]}"
-                    continue
-                elif response.status_code == 410:
-                    return response.text
-                response.raise_for_status()
-                return response.text
-            except Exception as e:
-                if attempt < retries - 1:
-                    await asyncio.sleep(5)
-                    continue
-                return self.print_message(self.mask_account(address), proxy, Fore.RED, f"PING Failed: {Fore.YELLOW+Style.BRIGHT}{str(e)}")
+                return None
+        
+    async def process_accounts(self, session_id: str, use_proxy: bool):
+        proxy = self.get_next_proxy_for_account(session_id) if use_proxy else None
 
-    async def process_generate_tokens(self, address: str, use_proxy: bool):
-        proxy = self.get_next_proxy_for_account(address) if use_proxy else None
-
-        access_token = None
-        while access_token is None:
-            access_token = await self.generate_tokens(address, proxy)
-            if not access_token:
+        user = None
+        while user is None:
+            user = await self.user_data(session_id, proxy)
+            if not user:
+                self.log(
+                    f"{Fore.CYAN + Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                    f"{Fore.RED + Style.BRIGHT} GET User Data Failed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                )
                 await asyncio.sleep(5)
-                proxy = self.rotate_proxy_for_account(address) if use_proxy else None
+                proxy = self.rotate_proxy_for_account(session_id) if use_proxy else None
                 continue
+
+            email = user.get("email", "Unknown")
+            power = user.get("power", 0)
+
+            self.log(
+                f"{Fore.CYAN + Style.BRIGHT}Proxy   :{Style.RESET_ALL}"
+                f"{Fore.WHITE + Style.BRIGHT} {proxy} {Style.RESET_ALL}"
+            )
+            self.log(
+                f"{Fore.CYAN + Style.BRIGHT}Email   :{Style.RESET_ALL}"
+                f"{Fore.WHITE + Style.BRIGHT} {self.mask_account(email)} {Style.RESET_ALL}"
+            )
+            self.log(
+                f"{Fore.CYAN + Style.BRIGHT}Power   :{Style.RESET_ALL}"
+                f"{Fore.WHITE + Style.BRIGHT} {power} PTS {Style.RESET_ALL}"
+            )
             
-            self.access_tokens[address] = access_token
-
-            self.print_message(address, proxy, Fore.GREEN, "GET Access Token Success")
-
-            return self.access_tokens[address]
-
-    async def process_add_whitelist(self, address: str, use_proxy: bool):
-        proxy = self.get_next_proxy_for_account(address) if use_proxy else None
-
-        whitelist = await self.add_whitelist(address, use_proxy, proxy)
-        if whitelist and whitelist.get("message") == "url saved successfully":
-            self.print_message(address, proxy, Fore.GREEN, "Add to Whitelist Success")
-
-        return True
-
-    async def process_get_wallet_details(self, address: str, use_proxy: bool):
-        await self.process_add_whitelist(address, use_proxy)
-
-        while True:
-            proxy = self.get_next_proxy_for_account(address) if use_proxy else None
-
-            total_earning = "N/A"
-
-            wallet = await self.wallet_details(address, use_proxy, proxy)
-            if wallet:
-                total_earning = wallet.get("message", {}).get("totalEarnings", 0)
-
-            self.print_message(address, proxy, Fore.WHITE, f"Earning Total: {total_earning} PTS")
-
-            await asyncio.sleep(10 * 60)
-        
-    async def process_send_ping(self, address: str, use_proxy: bool):
-        proxy = self.get_next_proxy_for_account(address) if use_proxy else None
-
-        ping = await self.perform_ping(address, use_proxy, proxy)
-        if ping and ping.strip() == "Ping Success!!":
-            self.print_message(address, proxy, Fore.GREEN, "PING Success")
-
-        return True
-        
-    async def process_activate_toggle(self, address, device_hash, use_proxy):
-        while True:
-            proxy = self.get_next_proxy_for_account(address) if use_proxy else None
-
-            deactivate = await self.toggle_activation(address, "OFF", device_hash, proxy)
-            if deactivate and deactivate.strip() in ["Session ended and daily usage updated", "No action needed"]:
-                activate = await self.toggle_activation(address, "ON", device_hash, proxy)
-                if activate and activate.strip() == "Session started":
-                    self.print_message(address, proxy, Fore.GREEN, "Turn On Protection Success")
-
-                    reconnect_time = int(time.time()) + 86400
-
-                    while True:
-                        if reconnect_time - int(time.time()) <= 0:
-                            self.print_message(address, proxy, Fore.YELLOW, "Reconnecting Node...")
-                            break
-
-                        await self.process_send_ping(address, use_proxy)
-                        await asyncio.sleep(10)
+            next_daily_reward = user.get("nextDailyRewardAt", None)
+            if next_daily_reward is None:
+                claim = await self.claim_daily_reward(session_id, proxy)
+                if claim:
+                    self.log(
+                        f"{Fore.CYAN + Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                        f"{Fore.GREEN + Style.BRIGHT} Claimed Successfully {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
+                        f"{Fore.CYAN + Style.BRIGHT} Reward: {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} 25 Power PTS {Style.RESET_ALL}"
+                    )
                 else:
-                    continue
+                    self.log(
+                        f"{Fore.CYAN + Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT} Claim Failed {Style.RESET_ALL}"
+                    )
             else:
-                continue
-        
-    async def process_accounts(self, address: str, device_hash: int, use_proxy: bool):
-        self.access_tokens[address] = await self.process_generate_tokens(address, use_proxy)
-        if self.access_tokens[address]:
-            tasks = [
-                asyncio.create_task(self.process_get_wallet_details(address, use_proxy)),
-                asyncio.create_task(self.process_activate_toggle(address, device_hash, use_proxy))
-            ]
-            await asyncio.gather(*tasks)
+                utc_now = datetime.now(timezone.utc)
+                next_daily_reward_utc = datetime.fromisoformat(next_daily_reward.replace("Z", "+00:00"))
+
+                if utc_now >= next_daily_reward_utc:
+                    claim = await self.claim_daily_reward(session_id, proxy)
+                    if claim:
+                        self.log(
+                            f"{Fore.CYAN + Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                            f"{Fore.GREEN + Style.BRIGHT} Claimed Successfully {Style.RESET_ALL}"
+                            f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
+                            f"{Fore.CYAN + Style.BRIGHT} Reward: {Style.RESET_ALL}"
+                            f"{Fore.WHITE + Style.BRIGHT} 25 Power PTS {Style.RESET_ALL}"
+                        )
+                    else:
+                        self.log(
+                            f"{Fore.CYAN + Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                            f"{Fore.RED + Style.BRIGHT} Claim Failed {Style.RESET_ALL}"
+                        )
+                else:
+                    next_daily_reward_wib = next_daily_reward_utc.astimezone(wib).strftime('%x %X %Z')
+                    self.log(
+                        f"{Fore.CYAN + Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Not Time To Claim {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
+                        f"{Fore.CYAN + Style.BRIGHT} Claim At: {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} {next_daily_reward_wib} {Style.RESET_ALL}"
+                    )
 
     async def main(self):
         try:
-            accounts = self.load_accounts()
-            if not accounts:
-                self.log(f"{Fore.RED}No Accounts Loaded.{Style.RESET_ALL}")
-                return
-
+            with open('cookies.txt', 'r') as file:
+                session_ids = [line.strip() for line in file if line.strip()]
+            
             use_proxy_choice = self.print_question()
 
-            use_proxy = False
-            if use_proxy_choice in [1, 2]:
-                use_proxy = True
-
-            self.clear_terminal()
-            self.welcome()
-            self.log(
-                f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
-                f"{Fore.WHITE + Style.BRIGHT}{len(accounts)}{Style.RESET_ALL}"
-            )
-
-            if use_proxy:
-                await self.load_proxies(use_proxy_choice)
-
-            self.log(f"{Fore.CYAN + Style.BRIGHT}={Style.RESET_ALL}"*65)
-
             while True:
-                tasks = []
-                for account in accounts:
-                    if account:
-                        address = account["Address"].lower()
-                        device_hash = int(account["deviceHash"])
+                use_proxy = False
+                if use_proxy_choice in [1, 2]:
+                    use_proxy = True
 
-                        if address and device_hash:
-                            tasks.append(asyncio.create_task(self.process_accounts(address, device_hash, use_proxy)))
+                self.clear_terminal()
+                self.welcome()
+                self.log(
+                    f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
+                    f"{Fore.WHITE + Style.BRIGHT}{len(session_ids)}{Style.RESET_ALL}"
+                )
 
-                await asyncio.gather(*tasks)
-                await asyncio.sleep(10)
+                if use_proxy:
+                    await self.load_proxies(use_proxy_choice)
+                
+                separator = "=" * 26
+                for idx, session_id in enumerate(session_ids, 1):
+                    if session_id:
+                        self.log(
+                            f"{Fore.CYAN + Style.BRIGHT}{separator}[{Style.RESET_ALL}"
+                            f"{Fore.BLUE + Style.BRIGHT} {idx} {Style.RESET_ALL}"
+                            f"{Fore.MAGENTA + Style.BRIGHT}OF{Style.RESET_ALL}"
+                            f"{Fore.BLUE + Style.BRIGHT} {len(session_ids)} {Style.RESET_ALL}"
+                            f"{Fore.CYAN + Style.BRIGHT}]{separator}{Style.RESET_ALL}"
+                        )
+                        await self.process_accounts(session_id, use_proxy)
+                        await asyncio.sleep(3)
 
+                self.log(f"{Fore.CYAN + Style.BRIGHT}={Style.RESET_ALL}"*63)
+                seconds = 24 * 60 * 60
+                while seconds > 0:
+                    formatted_time = self.format_seconds(seconds)
+                    print(
+                        f"{Fore.CYAN+Style.BRIGHT}[ Wait for{Style.RESET_ALL}"
+                        f"{Fore.WHITE+Style.BRIGHT} {formatted_time} {Style.RESET_ALL}"
+                        f"{Fore.CYAN+Style.BRIGHT}... ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE+Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.BLUE+Style.BRIGHT}All Accounts Have Been Processed.{Style.RESET_ALL}",
+                        end="\r"
+                    )
+                    await asyncio.sleep(1)
+                    seconds -= 1
+
+        except FileNotFoundError:
+            self.log(f"{Fore.RED}File 'accounts.txt' Not Found.{Style.RESET_ALL}")
+            return
         except Exception as e:
             self.log(f"{Fore.RED+Style.BRIGHT}Error: {e}{Style.RESET_ALL}")
-            raise e
 
 if __name__ == "__main__":
     try:
-        bot = NaorisProtocol()
+        bot = BillionsNetwork()
         asyncio.run(bot.main())
     except KeyboardInterrupt:
         print(
             f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
             f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-            f"{Fore.RED + Style.BRIGHT}[ EXIT ] Naoris Protocol Node - BOT{Style.RESET_ALL}                                       "                              
+            f"{Fore.RED + Style.BRIGHT}[ EXIT ] Billions Network - BOT{Style.RESET_ALL}                                       "                              
         )
