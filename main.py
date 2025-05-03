@@ -6,9 +6,9 @@ from aiohttp import (
 from aiohttp_socks import ProxyConnector
 from fake_useragent import FakeUserAgent
 from datetime import datetime, timezone
-from colorama import *
 import asyncio, os, pytz
-
+from pyfiglet import figlet_format
+from colorama import Fore, Style
 wib = pytz.timezone('Asia/Jakarta')
 
 class BillionsNetwork:
@@ -37,16 +37,22 @@ class BillionsNetwork:
             f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}{message}",
             flush=True
         )
-
+class BillionsNetwork:
     def welcome(self):
+        title = figlet_format("Auto Claim Billions Network", font="slant")  # Membuat teks besar
+        watermark = figlet_format("Rey?", font="slant")  # Membuat watermark besar
+
         print(
             f"""
-        {Fore.GREEN + Style.BRIGHT}Auto Claim {Fore.BLUE + Style.BRIGHT}Billions Network - BOT
-            """
-            f"""
-        {Fore.GREEN + Style.BRIGHT}Rey? {Fore.YELLOW + Style.BRIGHT}<INI WATERMARK>
+        {Fore.GREEN + Style.BRIGHT}{title}
+        {Fore.YELLOW + Style.BRIGHT}{watermark}
             """
         )
+# Memanggil metode welcome
+bot = BillionsNetwork()
+bot.welcome()# Memanggil metode welcome
+bot = BillionsNetwork()
+bot.welcome()
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
