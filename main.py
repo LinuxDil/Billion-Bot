@@ -39,17 +39,21 @@ class BillionsNetwork:
             flush=True
         )
 
+
     def welcome(self, title="Auto Claim Billions Network", watermark="Rey? <INI WATERMARK>"):
+        # Membuat teks besar untuk judul
         title_big = figlet_format(title, font="slant") 
-        watermark_big = figlet_format(watermark, font="slant")  
+
+        # Menentukan lebar terminal untuk memposisikan teks di tengah
         terminal_width = os.get_terminal_size().columns
         title_centered = title_big.center(terminal_width)
-        watermark_centered = watermark_big.center(terminal_width)
+        
+        # Menampilkan teks yang telah diformat dengan warna untuk judul
+        print(f"{Fore.GREEN + Style.BRIGHT}{title_centered}{Style.RESET_ALL}")
 
-        print(
-            f"{Fore.GREEN + Style.BRIGHT}{title_centered}{Style.RESET_ALL}")
-        print(
-            f"{Fore.YELLOW + Style.BRIGHT}{watermark_centered}{Style.RESET_ALL}")
+        # Menampilkan watermark dengan bold tanpa menggunakan figlet
+        watermark_centered = watermark.center(terminal_width)
+        print(f"{Fore.YELLOW + Style.BRIGHT}{watermark_centered}{Style.RESET_ALL}")
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
