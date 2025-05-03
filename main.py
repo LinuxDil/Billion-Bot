@@ -40,7 +40,7 @@ class BillionsNetwork:
         )
 
 
-    def welcome(self, title="Auto Claim Billions Network", watermark="Rey? <INI WATERMARK>"):
+    def welcome(self, title="Auto Claim Billion Network", watermark="Follow US on Telegram at: https://t.me/ardropseeker_official"):
         # Membuat teks besar untuk judul
         title_big = figlet_format(title, font="slant") 
 
