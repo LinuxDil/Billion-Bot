@@ -37,10 +37,7 @@ class BillionsNetwork:
             f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}{message}",
             flush=True
         )
-from pyfiglet import figlet_format
-from colorama import Fore, Style
 
-class BillionsNetwork:
     def welcome(self):
         title = figlet_format("Auto Claim Billions Network", font="slant")  # Membuat teks besar
         watermark = figlet_format("Rey?", font="slant")  # Membuat watermark besar
