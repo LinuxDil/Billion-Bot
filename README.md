@@ -21,7 +21,7 @@ Billion Network Bot Auto Claim Daily
 1. **Clone The Repositories:**
    ```bash
    git clone https://github.com/vonssy/Billion-Bot.git
-   cd Billions-BOT
+   cd Billion-Bot
    ```
 2. **Make Environment:**
    ```bash
