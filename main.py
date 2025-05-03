@@ -46,8 +46,10 @@ class BillionsNetwork:
             title_centered = title_big.center(terminal_width)
             watermark_centered = watermark_big.center(terminal_width)
 
-        print(f"{Fore.GREEN + Style.BRIGHT}{title_centered}{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW + Style.BRIGHT}{watermark_centered}{Style.RESET_ALL}")
+        print(
+            f"{Fore.GREEN + Style.BRIGHT}{title_centered}{Style.RESET_ALL}")
+        print(
+            f"{Fore.YELLOW + Style.BRIGHT}{watermark_centered}{Style.RESET_ALL}")
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
